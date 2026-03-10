@@ -57,6 +57,7 @@ class AudioProcessingService:
             "demucs.separate",
             "--name",
             self.settings.demucs_model,
+            "--mp3",
             "--out",
             str(demucs_out),
             str(wav_input_path),
@@ -76,9 +77,16 @@ class AudioProcessingService:
         output: dict[str, Path] = {}
         for stem in ["vocals", "drums", "bass", "other"]:
             wav_path = stems_source_dir / f"{stem}.wav"
-            if not wav_path.exists():
+            demucs_mp3_path = stems_source_dir / f"{stem}.mp3"
+            if not wav_path.exists() and not demucs_mp3_path.exists():
                 continue
+
             mp3_path = stems_target_dir / f"{stem}.mp3"
+            if demucs_mp3_path.exists():
+                shutil.copyfile(demucs_mp3_path, mp3_path)
+                output[stem] = mp3_path
+                continue
+
             cmd = ["ffmpeg", "-y", "-i", str(wav_path), "-codec:a", "libmp3lame", "-q:a", "2", str(mp3_path)]
             self._run(cmd, "FFMPEG_FAILED", f"Falha ao converter stem {stem}")
             output[stem] = mp3_path
