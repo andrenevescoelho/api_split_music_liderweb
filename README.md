@@ -77,6 +77,16 @@ Exemplo de header:
 }
 ```
 
+#### Observação sobre bloqueio anti-bot do YouTube
+
+Alguns vídeos podem retornar erro do yt-dlp como `Sign in to confirm you’re not a bot`.
+Nesses casos, configure uma das opções abaixo no `.env`:
+
+- `YTDLP_COOKIEFILE`: caminho para arquivo de cookies exportado do navegador.
+- `YTDLP_COOKIES_FROM_BROWSER`: formato aceito pelo yt-dlp, por exemplo `chrome`, `firefox`, `chrome:Default`.
+
+Essas variáveis ajudam o yt-dlp a reutilizar uma sessão autenticada e reduzir bloqueios para vídeos com restrição.
+
 ### Resultado por job
 - `GET /split/result/{job_id}`
 - Header opcional/obrigatório (quando configurado): `x-api-key`
