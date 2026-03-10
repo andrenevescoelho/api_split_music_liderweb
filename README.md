@@ -44,6 +44,19 @@ docker compose up --build
 3. Swagger:
 - http://localhost:8000/docs
 
+## Autenticação
+
+A API suporta autenticação via header `x-api-key`.
+
+- Defina `API_KEY` no `.env` para **obrigar autenticação** em todos os endpoints de split (`/split/upload`, `/split/youtube`, `/split/result/{job_id}`).
+- Se `API_KEY` estiver vazio, as rotas funcionam sem autenticação.
+
+Exemplo de header:
+
+```bash
+-H "x-api-key: sua-chave"
+```
+
 ## Endpoints
 
 ### Healthcheck
@@ -52,9 +65,11 @@ docker compose up --build
 ### Upload
 - `POST /split/upload`
 - `multipart/form-data` com `file`
+- Header opcional/obrigatório (quando configurado): `x-api-key`
 
 ### YouTube
 - `POST /split/youtube`
+- Header opcional/obrigatório (quando configurado): `x-api-key`
 - JSON:
 ```json
 {
@@ -64,6 +79,7 @@ docker compose up --build
 
 ### Resultado por job
 - `GET /split/result/{job_id}`
+- Header opcional/obrigatório (quando configurado): `x-api-key`
 
 ### Arquivos públicos
 - `GET /files/jobs/{job_id}/stems/vocals.mp3`
@@ -75,6 +91,7 @@ docker compose up --build
 curl -X POST "http://localhost:8000/split/upload" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
+  -H "x-api-key: sua-chave" \
   -F "file=@/caminho/musica.mp3"
 ```
 
@@ -83,12 +100,14 @@ curl -X POST "http://localhost:8000/split/upload" \
 curl -X POST "http://localhost:8000/split/youtube" \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
+  -H "x-api-key: sua-chave" \
   -d '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 ```
 
 ### Resultado
 ```bash
-curl "http://localhost:8000/split/result/<job_id>"
+curl "http://localhost:8000/split/result/<job_id>" \
+  -H "x-api-key: sua-chave"
 ```
 
 ## Exemplo de retorno
