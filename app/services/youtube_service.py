@@ -1,3 +1,5 @@
+import logging
+import os
 import re
 from pathlib import Path
 
@@ -7,6 +9,7 @@ from app.core.exceptions import AppError
 
 
 YOUTUBE_REGEX = re.compile(r"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/.+$", re.IGNORECASE)
+LOGGER = logging.getLogger(__name__)
 
 
 class YoutubeService:
@@ -16,12 +19,31 @@ class YoutubeService:
 
     def download_audio(self, url: str, output_dir: Path) -> Path:
         outtmpl = str(output_dir / "youtube.%(ext)s")
+
         options = {
             "format": "bestaudio/best",
             "outtmpl": outtmpl,
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
+            "retries": 5,
+            "fragment_retries": 5,
+            "extractor_retries": 3,
+            "socket_timeout": 15,
+            "geo_bypass": True,
+            "concurrent_fragment_downloads": 1,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web", "tv"],
+                }
+            },
+            "http_headers": {
+                "User-Agent": (
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            },
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
@@ -30,11 +52,26 @@ class YoutubeService:
                 }
             ],
         }
+
+        cookie_file = os.getenv("YTDLP_COOKIEFILE")
+        if cookie_file:
+            options["cookiefile"] = cookie_file
+
         try:
             with YoutubeDL(options) as ydl:
                 ydl.download([url])
         except Exception as exc:
-            raise AppError("YOUTUBE_DOWNLOAD_FAILED", "Falha ao baixar áudio do YouTube.", status_code=502) from exc
+            LOGGER.exception("Falha ao baixar áudio do YouTube: %s", exc)
+            details = "Tente novamente em instantes"
+            if cookie_file:
+                details += " e valide o arquivo YTDLP_COOKIEFILE"
+            else:
+                details += " ou configure YTDLP_COOKIEFILE para vídeos com restrição"
+            raise AppError(
+                "YOUTUBE_DOWNLOAD_FAILED",
+                f"Falha ao baixar áudio do YouTube ({details}).",
+                status_code=502,
+            ) from exc
 
         files = sorted(output_dir.glob("youtube.*"))
         if not files:
