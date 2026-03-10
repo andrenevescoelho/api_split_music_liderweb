@@ -13,12 +13,22 @@ LOGGER = logging.getLogger(__name__)
 
 
 class YoutubeService:
+    @staticmethod
+    def _project_root() -> Path:
+        return Path(__file__).resolve().parents[2]
+
     def _resolve_cookie_file(self) -> str | None:
-        cookie_file = os.getenv("YTDLP_COOKIEFILE")
-        if cookie_file:
-            return cookie_file
+        configured_cookie_file = os.getenv("YTDLP_COOKIEFILE")
+        if configured_cookie_file:
+            configured_path = Path(configured_cookie_file).expanduser()
+            if not configured_path.is_absolute():
+                configured_path = (self._project_root() / configured_path).resolve()
+            if configured_path.is_file():
+                return str(configured_path)
+            LOGGER.warning("YTDLP_COOKIEFILE configurado, mas arquivo não encontrado: %s", configured_path)
 
         fallback_candidates = [
+            self._project_root() / "secrets" / "cookies.txt",
             Path.cwd() / "secrets" / "cookies.txt",
             Path("/app/secrets/cookies.txt"),
         ]
