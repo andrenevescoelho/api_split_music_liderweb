@@ -13,12 +13,17 @@ LOGGER = logging.getLogger(__name__)
 
 
 class YoutubeService:
+    @staticmethod
+    def _project_root() -> Path:
+        return Path(__file__).resolve().parents[2]
+
     def _resolve_cookie_file(self) -> str | None:
         cookie_file = os.getenv("YTDLP_COOKIEFILE")
         if cookie_file:
             return cookie_file
 
         fallback_candidates = [
+            self._project_root() / "secrets" / "cookies.txt",
             Path.cwd() / "secrets" / "cookies.txt",
             Path("/app/secrets/cookies.txt"),
         ]
