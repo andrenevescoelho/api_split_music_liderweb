@@ -1,0 +1,14 @@
+services:
+  split_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: split_api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./app:/app/app
+    restart: unless-stopped
