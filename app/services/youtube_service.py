@@ -13,6 +13,20 @@ LOGGER = logging.getLogger(__name__)
 
 
 class YoutubeService:
+    def _resolve_cookie_file(self) -> str | None:
+        cookie_file = os.getenv("YTDLP_COOKIEFILE")
+        if cookie_file:
+            return cookie_file
+
+        fallback_candidates = [
+            Path.cwd() / "secrets" / "cookies.txt",
+            Path("/app/secrets/cookies.txt"),
+        ]
+        for candidate in fallback_candidates:
+            if candidate.is_file():
+                return str(candidate)
+        return None
+
     def validate_url(self, url: str) -> None:
         if not YOUTUBE_REGEX.match(url):
             raise AppError("INVALID_YOUTUBE_URL", "URL do YouTube inválida.", status_code=400)
@@ -53,7 +67,7 @@ class YoutubeService:
             ],
         }
 
-        cookie_file = os.getenv("YTDLP_COOKIEFILE")
+        cookie_file = self._resolve_cookie_file()
         if cookie_file:
             options["cookiefile"] = cookie_file
 

@@ -83,6 +83,7 @@ Alguns vídeos podem retornar erro do yt-dlp como `Sign in to confirm you’re n
 Nesses casos, configure uma das opções abaixo no `.env`:
 
 - `YTDLP_COOKIEFILE`: caminho para arquivo de cookies exportado do navegador.
+  - Se não for informado, a API tenta automaticamente `secrets/cookies.txt` (ou `/app/secrets/cookies.txt` no container).
 - `YTDLP_COOKIES_FROM_BROWSER`: formato aceito pelo yt-dlp, por exemplo `chrome`, `firefox`, `chrome:Default`.
 
 Essas variáveis ajudam o yt-dlp a reutilizar uma sessão autenticada e reduzir bloqueios para vídeos com restrição.
