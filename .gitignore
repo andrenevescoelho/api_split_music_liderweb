@@ -4,3 +4,5 @@ __pycache__/
 storage/jobs/*
 storage/tmp/*
 !.gitkeep
+
+secrets/
