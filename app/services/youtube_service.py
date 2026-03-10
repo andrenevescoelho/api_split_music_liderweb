@@ -57,13 +57,27 @@ class YoutubeService:
         if cookie_file:
             options["cookiefile"] = cookie_file
 
+        cookies_from_browser = os.getenv("YTDLP_COOKIES_FROM_BROWSER")
+        if cookies_from_browser:
+            options["cookiesfrombrowser"] = tuple(
+                part.strip() for part in cookies_from_browser.split(":") if part.strip()
+            )
+
         try:
             with YoutubeDL(options) as ydl:
                 ydl.download([url])
         except Exception as exc:
             LOGGER.exception("Falha ao baixar áudio do YouTube: %s", exc)
             details = "Tente novamente em instantes"
-            if cookie_file:
+            error_message = str(exc).lower()
+            blocked_by_bot_check = "sign in to confirm you're not a bot" in error_message or "sign in to confirm you’re not a bot" in error_message
+            if blocked_by_bot_check:
+                details = (
+                    "O YouTube exigiu verificação anti-bot para esta URL. "
+                    "Configure YTDLP_COOKIEFILE ou YTDLP_COOKIES_FROM_BROWSER "
+                    "com uma sessão válida e tente novamente"
+                )
+            elif cookie_file:
                 details += " e valide o arquivo YTDLP_COOKIEFILE"
             else:
                 details += " ou configure YTDLP_COOKIEFILE para vídeos com restrição"
