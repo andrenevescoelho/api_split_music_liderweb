@@ -3,13 +3,20 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import librosa
+try:
+    import librosa
+except ModuleNotFoundError:  # pragma: no cover - depends on runtime image
+    librosa = None
 
 logger = logging.getLogger(__name__)
 
 
 class TuningAnalyzer:
     def analyze(self, audio_path: Path) -> float | None:
+        if librosa is None:
+            logger.warning("Skipping tuning analysis for %s: librosa is not installed", audio_path)
+            return None
+
         try:
             y, sr = librosa.load(str(audio_path), sr=22050, mono=True)
             if y.size == 0:

@@ -3,8 +3,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import librosa
 import numpy as np
+
+try:
+    import librosa
+except ModuleNotFoundError:  # pragma: no cover - depends on runtime image
+    librosa = None
 
 from app.analysis.helpers import clamp_confidence
 
@@ -19,6 +23,10 @@ MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 
 
 class KeyAnalyzer:
     def analyze(self, audio_path: Path) -> tuple[str | None, str | None, float]:
+        if librosa is None:
+            logger.warning("Skipping key analysis for %s: librosa is not installed", audio_path)
+            return None, None, 0.0
+
         try:
             y, sr = librosa.load(str(audio_path), sr=22050, mono=True)
             if y.size == 0:
