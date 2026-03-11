@@ -57,7 +57,6 @@ class AudioProcessingService:
             "demucs.separate",
             "--name",
             self.settings.demucs_model,
-            "--mp3",
             "--out",
             str(demucs_out),
             str(wav_input_path),
