@@ -45,8 +45,9 @@ class SplitService:
 
         stems_raw_dir = self.audio.split_with_demucs(wav_input, job_dir)
         stem_paths = self.audio.convert_stems_to_mp3(stems_raw_dir, job_dir / "stems")
+        analysis_inputs = self._build_analysis_inputs(stems_raw_dir, stem_paths)
 
-        analysis_result = self._safe_analyze(original_file, stem_paths)
+        analysis_result = self._safe_analyze(wav_input, analysis_inputs)
 
         processing_time = round(time.perf_counter() - started, 2)
         duration = self.audio.duration_seconds(original_file)
@@ -91,3 +92,14 @@ class SplitService:
         except Exception:
             logger.exception("Music analysis failed; split output will still be returned")
             return None
+
+    def _build_analysis_inputs(self, stems_raw_dir: Path, converted_stems: dict[str, Path]) -> dict[str, Path]:
+        """Prefer WAV stems for DSP analyzers, fallback to converted MP3 stems."""
+        analysis_inputs: dict[str, Path] = {}
+        for stem, converted_path in converted_stems.items():
+            wav_path = stems_raw_dir / f"{stem}.wav"
+            if wav_path.exists():
+                analysis_inputs[stem] = wav_path
+            else:
+                analysis_inputs[stem] = converted_path
+        return analysis_inputs
