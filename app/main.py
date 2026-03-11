@@ -15,7 +15,7 @@ storage = get_storage_service()
 
 app = FastAPI(
     title="Music Split API",
-    description="API local para split de música via upload ou YouTube usando Demucs.",
+    description="API local para split de música via upload de arquivo usando Demucs.",
     version="0.1.0",
 )
 
