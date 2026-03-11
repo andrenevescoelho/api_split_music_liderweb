@@ -7,12 +7,14 @@ API para separar stems musicais a partir de upload de arquivo de áudio.
 - FastAPI + Uvicorn
 - Demucs
 - ffmpeg
+- librosa (DSP/MIR para BPM, key/mode e tuning)
 - Docker / docker-compose
 
 ## Estrutura
 
 ```bash
 app/
+  analysis/
   main.py
   core/
   routes/
@@ -73,6 +75,19 @@ Exemplo de header:
 ### Arquivos públicos
 - `GET /files/jobs/{job_id}/stems/vocals.mp3`
 
+## Pipeline de processamento
+
+1. Converte o áudio de entrada para WAV interno.
+2. Executa split via Demucs.
+3. Converte stems para MP3.
+4. Executa análise musical DSP/MIR (sem LLM):
+   - BPM (priorizando stem `drums`, com fallback para mix)
+   - Key + mode (priorizando stem `other`, com fallback para mix)
+   - Tuning estimado em Hz
+5. Retorna split + análise no mesmo payload.
+
+> Se a análise falhar, o split continua sendo retornado normalmente.
+
 ## Exemplos de curl
 
 ### Upload
@@ -95,6 +110,7 @@ curl "http://localhost:8000/split/result/<job_id>" \
 ```json
 {
   "success": true,
+  "status": "completed",
   "job_id": "abc123",
   "source_type": "upload",
   "original_audio_url": "http://localhost:8000/files/jobs/abc123/original.mp3",
@@ -108,6 +124,21 @@ curl "http://localhost:8000/split/result/<job_id>" \
     "filename": "musica.mp3",
     "duration_seconds": 245,
     "processing_time_seconds": 42
+  },
+  "analysis": {
+    "bpm": 154,
+    "displayBpm": 77,
+    "key": "D",
+    "mode": "major",
+    "tuningHz": 440.3,
+    "confidence": {
+      "bpm": 0.91,
+      "key": 0.84
+    },
+    "sources": {
+      "bpm": "drums",
+      "key": "other"
+    }
   }
 }
 ```
@@ -129,3 +160,8 @@ curl "http://localhost:8000/split/result/<job_id>" \
 - Interface de armazenamento: `StorageService`
 - Implementação local: `LocalStorageService`
 - Placeholder para GCP: `GCSStorageService`
+- Análise musical modular:
+  - `app/analysis/bpm_analyzer.py`
+  - `app/analysis/key_analyzer.py`
+  - `app/analysis/tuning_analyzer.py`
+  - `app/analysis/music_analyzer.py`

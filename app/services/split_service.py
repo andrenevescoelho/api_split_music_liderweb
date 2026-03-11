@@ -1,12 +1,16 @@
+import logging
 import time
 import uuid
 from pathlib import Path
 
 from app.core.exceptions import AppError
-from app.schemas.split import ProcessingMetadata, SplitResponse
+from app.schemas.split import AnalysisResult, ProcessingMetadata, SplitResponse
 from app.services.audio_processing_service import AudioProcessingService
 from app.services.local_storage_service import LocalStorageService
+from app.analysis.music_analyzer import MusicAnalyzer
 from app.utils.files import sanitize_filename, validate_upload
+
+logger = logging.getLogger(__name__)
 
 
 class SplitService:
@@ -14,9 +18,11 @@ class SplitService:
         self,
         storage_service: LocalStorageService,
         audio_service: AudioProcessingService,
+        music_analyzer: MusicAnalyzer,
     ):
         self.storage = storage_service
         self.audio = audio_service
+        self.music_analyzer = music_analyzer
 
     def _build_urls(self, job_id: str, stem_paths: dict[str, Path]) -> dict[str, str]:
         urls = {}
@@ -40,6 +46,8 @@ class SplitService:
         stems_raw_dir = self.audio.split_with_demucs(wav_input, job_dir)
         stem_paths = self.audio.convert_stems_to_mp3(stems_raw_dir, job_dir / "stems")
 
+        analysis_result = self._safe_analyze(original_file, stem_paths)
+
         processing_time = round(time.perf_counter() - started, 2)
         duration = self.audio.duration_seconds(original_file)
 
@@ -53,9 +61,10 @@ class SplitService:
                 duration_seconds=duration,
                 processing_time_seconds=processing_time,
             ),
+            analysis=analysis_result,
         )
 
-        self.audio.write_result_manifest(job_dir, response.model_dump())
+        self.audio.write_result_manifest(job_dir, response.model_dump(by_alias=True))
         self.audio.cleanup_temp(job_dir)
         if wav_input.exists():
             wav_input.unlink(missing_ok=True)
@@ -75,3 +84,10 @@ class SplitService:
         import json
 
         return json.loads(result_file.read_text(encoding="utf-8"))
+
+    def _safe_analyze(self, original_file: Path, stem_paths: dict[str, Path]) -> AnalysisResult | None:
+        try:
+            return self.music_analyzer.analyze(original_file, stem_paths)
+        except Exception:
+            logger.exception("Music analysis failed; split output will still be returned")
+            return None
