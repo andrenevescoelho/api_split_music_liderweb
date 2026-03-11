@@ -3,8 +3,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-import librosa
 import numpy as np
+
+try:
+    import librosa
+except ModuleNotFoundError:  # pragma: no cover - depends on runtime image
+    librosa = None
 
 from app.analysis.helpers import clamp_confidence
 
@@ -15,6 +19,10 @@ class BpmAnalyzer:
     """Beat tracking based BPM estimator using librosa DSP."""
 
     def analyze(self, audio_path: Path) -> tuple[int | None, int | None, float]:
+        if librosa is None:
+            logger.warning("Skipping BPM analysis for %s: librosa is not installed", audio_path)
+            return None, None, 0.0
+
         try:
             y, sr = librosa.load(str(audio_path), sr=22050, mono=True)
             if y.size == 0:
