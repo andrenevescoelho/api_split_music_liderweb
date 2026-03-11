@@ -22,7 +22,6 @@ class Settings(BaseSettings):
         default="http://localhost:3000,http://localhost:3001", alias="ALLOWED_ORIGINS"
     )
 
-    ytdlp_enabled: bool = Field(default=True, alias="YTDLP_ENABLED")
     api_key: str | None = Field(default=None, alias="API_KEY")
 
     demucs_model: str = Field(default="htdemucs", alias="DEMUCS_MODEL")

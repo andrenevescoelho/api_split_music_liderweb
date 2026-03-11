@@ -6,7 +6,6 @@ from app.core.exceptions import AppError
 from app.schemas.split import ProcessingMetadata, SplitResponse
 from app.services.audio_processing_service import AudioProcessingService
 from app.services.local_storage_service import LocalStorageService
-from app.services.youtube_service import YoutubeService
 from app.utils.files import sanitize_filename, validate_upload
 
 
@@ -15,11 +14,9 @@ class SplitService:
         self,
         storage_service: LocalStorageService,
         audio_service: AudioProcessingService,
-        youtube_service: YoutubeService,
     ):
         self.storage = storage_service
         self.audio = audio_service
-        self.youtube = youtube_service
 
     def _build_urls(self, job_id: str, stem_paths: dict[str, Path]) -> dict[str, str]:
         urls = {}
@@ -70,16 +67,6 @@ class SplitService:
         tmp_input = Path(self.storage.temp_dir) / f"{uuid.uuid4().hex}_{safe_name}"
         tmp_input.write_bytes(file_bytes)
         return self.process_local_audio("upload", tmp_input, safe_name)
-
-    def process_youtube(self, url: str, ytdlp_enabled: bool) -> SplitResponse:
-        if not ytdlp_enabled:
-            raise AppError("YTDLP_DISABLED", "Download via YouTube está desabilitado.", status_code=403)
-
-        self.youtube.validate_url(url)
-        temp_download_dir = Path(self.storage.temp_dir) / uuid.uuid4().hex
-        temp_download_dir.mkdir(parents=True, exist_ok=True)
-        downloaded = self.youtube.download_audio(url, temp_download_dir)
-        return self.process_local_audio("youtube", downloaded, downloaded.name)
 
     def get_result(self, job_id: str) -> dict:
         result_file = self.storage.job_path(job_id) / "result.json"

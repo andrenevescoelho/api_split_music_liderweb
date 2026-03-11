@@ -1,10 +1,6 @@
 from typing import Dict, Optional
 
-from pydantic import BaseModel, HttpUrl
-
-
-class YoutubeSplitRequest(BaseModel):
-    url: HttpUrl
+from pydantic import BaseModel
 
 
 class ProcessingMetadata(BaseModel):
