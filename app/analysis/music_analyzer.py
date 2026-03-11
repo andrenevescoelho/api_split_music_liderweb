@@ -4,7 +4,6 @@ import logging
 from pathlib import Path
 
 from app.analysis.bpm_analyzer import BpmAnalyzer
-from app.analysis.helpers import pick_existing_stem
 from app.analysis.key_analyzer import KeyAnalyzer
 from app.analysis.tuning_analyzer import TuningAnalyzer
 from app.schemas.split import AnalysisConfidence, AnalysisResult
@@ -24,14 +23,11 @@ class MusicAnalyzer:
         self.tuning_analyzer = tuning_analyzer or TuningAnalyzer()
 
     def analyze(self, original_audio: Path, stem_paths: dict[str, Path]) -> AnalysisResult:
-        bpm_source = pick_existing_stem(stem_paths, ["drums", "percussion"])
-        key_source = pick_existing_stem(stem_paths, ["other", "piano", "guitar", "keys", "pads"])
+        bpm_candidates = self._build_candidates(stem_paths, ["drums", "percussion"], original_audio)
+        key_candidates = self._build_candidates(stem_paths, ["other", "piano", "guitar", "keys", "pads"], original_audio)
 
-        bpm_stem_name, bpm_input = (bpm_source if bpm_source else ("mix", original_audio))
-        key_stem_name, key_input = (key_source if key_source else ("mix", original_audio))
-
-        bpm, display_bpm, bpm_conf = self.bpm_analyzer.analyze(bpm_input)
-        key, mode, key_conf = self.key_analyzer.analyze(key_input)
+        bpm_stem_name, bpm, display_bpm, bpm_conf = self._analyze_bpm_with_fallback(bpm_candidates)
+        key_stem_name, key_input, key, mode, key_conf = self._analyze_key_with_fallback(key_candidates)
         tuning_hz = self.tuning_analyzer.analyze(key_input)
 
         logger.info(
@@ -54,3 +50,38 @@ class MusicAnalyzer:
             confidence=AnalysisConfidence(bpm=round(bpm_conf, 3), key=round(key_conf, 3)),
             sources={"bpm": bpm_stem_name, "key": key_stem_name},
         )
+
+    def _build_candidates(
+        self,
+        stem_paths: dict[str, Path],
+        preferred_stems: list[str],
+        original_audio: Path,
+    ) -> list[tuple[str, Path]]:
+        candidates: list[tuple[str, Path]] = []
+        for stem in preferred_stems:
+            path = stem_paths.get(stem)
+            if path and path.exists():
+                candidates.append((stem, path))
+
+        candidates.append(("mix", original_audio))
+        return candidates
+
+    def _analyze_bpm_with_fallback(self, candidates: list[tuple[str, Path]]) -> tuple[str, int | None, int | None, float]:
+        for stem_name, audio_path in candidates:
+            bpm, display_bpm, bpm_conf = self.bpm_analyzer.analyze(audio_path)
+            if bpm is not None:
+                return stem_name, bpm, display_bpm, bpm_conf
+
+        return candidates[-1][0], None, None, 0.0
+
+    def _analyze_key_with_fallback(
+        self,
+        candidates: list[tuple[str, Path]],
+    ) -> tuple[str, Path, str | None, str | None, float]:
+        for stem_name, audio_path in candidates:
+            key, mode, key_conf = self.key_analyzer.analyze(audio_path)
+            if key is not None:
+                return stem_name, audio_path, key, mode, key_conf
+
+        fallback_stem_name, fallback_path = candidates[-1]
+        return fallback_stem_name, fallback_path, None, None, 0.0
