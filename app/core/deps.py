@@ -3,6 +3,7 @@ from functools import lru_cache
 from fastapi import Depends
 from fastapi.security import APIKeyHeader
 
+from app.analysis.music_analyzer import MusicAnalyzer
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.services.audio_processing_service import AudioProcessingService
@@ -25,6 +26,7 @@ def get_split_service() -> SplitService:
     return SplitService(
         storage_service=get_storage_service(),
         audio_service=AudioProcessingService(settings),
+        music_analyzer=MusicAnalyzer(),
     )
 
 
