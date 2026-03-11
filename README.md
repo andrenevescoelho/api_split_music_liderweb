@@ -1,12 +1,11 @@
 # API Local de Split de Música (FastAPI + Docker)
 
-API para separar stems musicais a partir de upload de arquivo de áudio ou URL do YouTube.
+API para separar stems musicais a partir de upload de arquivo de áudio.
 
 ## Stack
 - Python 3.11
 - FastAPI + Uvicorn
 - Demucs
-- yt-dlp
 - ffmpeg
 - Docker / docker-compose
 
@@ -48,7 +47,7 @@ docker compose up --build
 
 A API suporta autenticação via header `x-api-key`.
 
-- Defina `API_KEY` no `.env` para **obrigar autenticação** em todos os endpoints de split (`/split/upload`, `/split/youtube`, `/split/result/{job_id}`).
+- Defina `API_KEY` no `.env` para **obrigar autenticação** em todos os endpoints de split (`/split/upload`, `/split/result/{job_id}`).
 - Se `API_KEY` estiver vazio, as rotas funcionam sem autenticação.
 
 Exemplo de header:
@@ -67,29 +66,6 @@ Exemplo de header:
 - `multipart/form-data` com `file`
 - Header opcional/obrigatório (quando configurado): `x-api-key`
 
-### YouTube
-- `POST /split/youtube`
-- Header opcional/obrigatório (quando configurado): `x-api-key`
-- JSON:
-```json
-{
-  "url": "https://www.youtube.com/watch?v=..."
-}
-```
-
-#### Observação sobre bloqueio anti-bot do YouTube
-
-Alguns vídeos podem retornar erro do yt-dlp como `Sign in to confirm you’re not a bot`.
-Nesses casos, configure uma das opções abaixo no `.env`:
-
-- `YTDLP_COOKIEFILE`: caminho para arquivo de cookies exportado do navegador.
-  - Pode ser absoluto (ex.: `/app/secrets/cookies.txt`) ou relativo ao diretório do projeto (ex.: `secrets/cookies.txt`).
-  - Se apontar para um arquivo inexistente, a API ignora esse valor e tenta os fallbacks automáticos.
-  - Se não for informado, a API tenta automaticamente `secrets/cookies.txt` (ou `/app/secrets/cookies.txt` no container).
-- `YTDLP_COOKIES_FROM_BROWSER`: formato aceito pelo yt-dlp, por exemplo `chrome`, `firefox`, `chrome:Default`.
-
-Essas variáveis ajudam o yt-dlp a reutilizar uma sessão autenticada e reduzir bloqueios para vídeos com restrição.
-
 ### Resultado por job
 - `GET /split/result/{job_id}`
 - Header opcional/obrigatório (quando configurado): `x-api-key`
@@ -106,15 +82,6 @@ curl -X POST "http://localhost:8000/split/upload" \
   -H "Content-Type: multipart/form-data" \
   -H "x-api-key: sua-chave" \
   -F "file=@/caminho/musica.mp3"
-```
-
-### YouTube
-```bash
-curl -X POST "http://localhost:8000/split/youtube" \
-  -H "accept: application/json" \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: sua-chave" \
-  -d '{"url":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 ```
 
 ### Resultado
@@ -162,15 +129,3 @@ curl "http://localhost:8000/split/result/<job_id>" \
 - Interface de armazenamento: `StorageService`
 - Implementação local: `LocalStorageService`
 - Placeholder para GCP: `GCSStorageService`
-
-## Próximas fases
-
-### Fase 2
-- processamento assíncrono
-- status por job
-- limpeza automática
-
-### Fase 3
-- Google Cloud Storage
-- signed URLs
-- worker/queue em ambiente GCP

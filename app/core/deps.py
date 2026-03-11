@@ -8,7 +8,6 @@ from app.core.exceptions import AppError
 from app.services.audio_processing_service import AudioProcessingService
 from app.services.local_storage_service import LocalStorageService
 from app.services.split_service import SplitService
-from app.services.youtube_service import YoutubeService
 
 api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
 
@@ -26,7 +25,6 @@ def get_split_service() -> SplitService:
     return SplitService(
         storage_service=get_storage_service(),
         audio_service=AudioProcessingService(settings),
-        youtube_service=YoutubeService(),
     )
 
 
